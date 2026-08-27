@@ -57,6 +57,8 @@ options:
     description: "MiniMax image generation with subject-reference character workflows"
   - label: "Replicate"
     description: "Community models - nano-banana-pro, flexible model selection"
+  - label: "Atlas Cloud"
+    description: "Unified asynchronous image API; text-to-image with bounded result polling"
 ```
 
 ### Question 2: Default Google Model
@@ -119,6 +121,18 @@ options:
     description: "Faster variant, use aspect ratio instead of custom size"
 ```
 
+### Question 2e: Default Atlas Model
+
+Only show if user selected Atlas Cloud.
+
+```yaml
+header: "Atlas Model"
+question: "Default Atlas Cloud image generation model?"
+options:
+  - label: "openai/gpt-image-2/text-to-image (Recommended)"
+    description: "Schema-verified Atlas text-to-image route with custom size and quality"
+```
+
 ### Question 3: Default Quality
 
 ```yaml
@@ -167,6 +181,7 @@ default_model:
   dashscope: null
   minimax: [selected minimax model or null]
   replicate: null
+  atlas: [selected atlas model or null]
 ---
 ```
 
@@ -287,6 +302,22 @@ Notes for MiniMax setup:
 - `image-01-live` is useful when the user prefers faster generation and can work with aspect-ratio-based sizing.
 - MiniMax subject reference currently uses `subject_reference[].type = character`; docs recommend front-facing portrait references in JPG/JPEG/PNG under 10MB.
 
+### Atlas Model Selection
+
+```yaml
+header: "Atlas Model"
+question: "Choose a default Atlas Cloud image generation model?"
+options:
+  - label: "openai/gpt-image-2/text-to-image (Recommended)"
+    description: "Current schema-verified Atlas text-to-image route"
+```
+
+Notes for Atlas setup:
+
+- Set `ATLASCLOUD_API_KEY` locally; never paste it into prompts or commit it.
+- Atlas currently uses text-to-image only in this skill; `--ref` is rejected with a clear error.
+- A generation POST is submitted once. Only result GET polling uses bounded retries.
+
 ### Update EXTEND.md
 
 After user selects a model:
@@ -304,6 +335,7 @@ default_model:
   dashscope: [value or null]
   minimax: [value or null]
   replicate: [value or null]
+  atlas: [value or null]
 ```
 
 Only set the selected provider's model; leave others as their current value or null.

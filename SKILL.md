@@ -1,7 +1,7 @@
 ---
 name: baoyu-imagine
-description: AI image generation with OpenAI, Azure OpenAI, Google, OpenRouter, DashScope, MiniMax, Jimeng, Seedream and Replicate APIs. Supports text-to-image, reference images, aspect ratios, and batch generation from saved prompt files. Sequential by default; use batch parallel generation when the user already has multiple prompts or wants stable multi-image throughput. Use when user asks to generate, create, or draw images.
-version: 1.56.4
+description: AI image generation with OpenAI, Azure OpenAI, Google, OpenRouter, DashScope, MiniMax, Jimeng, Seedream, Replicate and Atlas Cloud APIs. Supports text-to-image, reference images, aspect ratios, and batch generation from saved prompt files. Sequential by default; use batch parallel generation when the user already has multiple prompts or wants stable multi-image throughput. Use when user asks to generate, create, or draw images.
+version: 1.57.0
 metadata:
   openclaw:
     homepage: https://github.com/JimLiu/baoyu-skills#baoyu-imagine
@@ -13,7 +13,7 @@ metadata:
 
 # Image Generation (AI SDK)
 
-Official API-based image generation. Supports OpenAI, Azure OpenAI, Google, OpenRouter, DashScope (阿里通义万象), MiniMax, Jimeng (即梦), Seedream (豆包) and Replicate providers.
+Official API-based image generation. Supports OpenAI, Azure OpenAI, Google, OpenRouter, DashScope (阿里通义万象), MiniMax, Jimeng (即梦), Seedream (豆包), Replicate and Atlas Cloud providers.
 
 ## Script Directory
 
@@ -118,6 +118,9 @@ ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider r
 # Replicate with specific model
 ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider replicate --model google/nano-banana
 
+# Atlas Cloud (text-to-image; asynchronous POST + bounded GET polling)
+${BUN_X} {baseDir}/scripts/main.ts --prompt "A studio product photo" --image out.png --provider atlas --quality normal
+
 # Batch mode with saved prompt files
 ${BUN_X} {baseDir}/scripts/main.ts --batchfile batch.json
 
@@ -161,13 +164,13 @@ Paths in `promptFiles`, `image`, and `ref` are resolved relative to the batch fi
 | `--image <path>` | Output image path (required in single-image mode) |
 | `--batchfile <path>` | JSON batch file for multi-image generation |
 | `--jobs <count>` | Worker count for batch mode (default: auto, max from config, built-in default 10) |
-| `--provider google\|openai\|azure\|openrouter\|dashscope\|minimax\|jimeng\|seedream\|replicate` | Force provider (default: auto-detect) |
-| `--model <id>`, `-m` | Model ID (Google: `gemini-3-pro-image-preview`; OpenAI: `gpt-image-1.5`; Azure: deployment name such as `gpt-image-1.5` or `image-prod`; OpenRouter: `google/gemini-3.1-flash-image-preview`; DashScope: `qwen-image-2.0-pro`; MiniMax: `image-01`) |
+| `--provider google\|openai\|azure\|openrouter\|dashscope\|minimax\|jimeng\|seedream\|replicate\|atlas` | Force provider (default: auto-detect) |
+| `--model <id>`, `-m` | Model ID (Google: `gemini-3-pro-image-preview`; OpenAI: `gpt-image-1.5`; Azure: deployment name such as `gpt-image-1.5` or `image-prod`; OpenRouter: `google/gemini-3.1-flash-image-preview`; DashScope: `qwen-image-2.0-pro`; MiniMax: `image-01`; Atlas: `openai/gpt-image-2/text-to-image`) |
 | `--ar <ratio>` | Aspect ratio (e.g., `16:9`, `1:1`, `4:3`) |
 | `--size <WxH>` | Size (e.g., `1024x1024`) |
 | `--quality normal\|2k` | Quality preset (default: `2k`) |
 | `--imageSize 1K\|2K\|4K` | Image size for Google/OpenRouter (default: from quality) |
-| `--ref <files...>` | Reference images. Supported by Google multimodal, OpenAI GPT Image edits, Azure OpenAI edits (PNG/JPG only), OpenRouter multimodal models, Replicate, MiniMax subject-reference, and Seedream 5.0/4.5/4.0. Not supported by Jimeng, Seedream 3.0, or removed SeedEdit 3.0 |
+| `--ref <files...>` | Reference images. Supported by Google multimodal, OpenAI GPT Image edits, Azure OpenAI edits (PNG/JPG only), OpenRouter multimodal models, Replicate, MiniMax subject-reference, and Seedream 5.0/4.5/4.0. Not supported by Atlas text-to-image, Jimeng, Seedream 3.0, or removed SeedEdit 3.0 |
 | `--n <count>` | Number of images |
 | `--json` | JSON output |
 
@@ -185,6 +188,7 @@ Paths in `promptFiles`, `image`, and `ref` are resolved relative to the batch fi
 | `JIMENG_ACCESS_KEY_ID` | Jimeng (即梦) Volcengine access key |
 | `JIMENG_SECRET_ACCESS_KEY` | Jimeng (即梦) Volcengine secret key |
 | `ARK_API_KEY` | Seedream (豆包) Volcengine ARK API key |
+| `ATLASCLOUD_API_KEY` | Atlas Cloud API key |
 | `OPENAI_IMAGE_MODEL` | OpenAI model override |
 | `AZURE_OPENAI_DEPLOYMENT` | Azure default deployment name |
 | `AZURE_OPENAI_IMAGE_MODEL` | Backward-compatible alias for Azure default deployment/model name |
@@ -195,6 +199,7 @@ Paths in `promptFiles`, `image`, and `ref` are resolved relative to the batch fi
 | `REPLICATE_IMAGE_MODEL` | Replicate model override (default: google/nano-banana-pro) |
 | `JIMENG_IMAGE_MODEL` | Jimeng model override (default: jimeng_t2i_v40) |
 | `SEEDREAM_IMAGE_MODEL` | Seedream model override (default: doubao-seedream-5-0-260128) |
+| `ATLAS_IMAGE_MODEL` | Atlas Cloud model override (default: `openai/gpt-image-2/text-to-image`) |
 | `OPENAI_BASE_URL` | Custom OpenAI endpoint |
 | `AZURE_OPENAI_BASE_URL` | Azure resource endpoint or deployment endpoint |
 | `AZURE_API_VERSION` | Azure image API version (default: `2025-04-01-preview`) |
@@ -208,6 +213,7 @@ Paths in `promptFiles`, `image`, and `ref` are resolved relative to the batch fi
 | `JIMENG_BASE_URL` | Custom Jimeng endpoint (default: `https://visual.volcengineapi.com`) |
 | `JIMENG_REGION` | Jimeng region (default: `cn-north-1`) |
 | `SEEDREAM_BASE_URL` | Custom Seedream endpoint (default: `https://ark.cn-beijing.volces.com/api/v3`) |
+| `ATLASCLOUD_BASE_URL` | Custom Atlas Cloud endpoint (default: `https://api.atlascloud.ai`) |
 | `BAOYU_IMAGE_GEN_MAX_WORKERS` | Override batch worker cap |
 | `BAOYU_IMAGE_GEN_<PROVIDER>_CONCURRENCY` | Override provider concurrency, e.g. `BAOYU_IMAGE_GEN_REPLICATE_CONCURRENCY` |
 | `BAOYU_IMAGE_GEN_<PROVIDER>_START_INTERVAL_MS` | Override provider start gap, e.g. `BAOYU_IMAGE_GEN_REPLICATE_START_INTERVAL_MS` |
@@ -224,6 +230,8 @@ Model priority (highest → lowest), applies to all providers:
 4. Built-in default
 
 For Azure, `--model` / `default_model.azure` should be the Azure deployment name. `AZURE_OPENAI_DEPLOYMENT` is the preferred env var, and `AZURE_OPENAI_IMAGE_MODEL` remains as a backward-compatible alias.
+
+For Atlas, the built-in default is the live-schema-verified text-to-image route `openai/gpt-image-2/text-to-image`. The provider submits generation exactly once and retries only bounded result GETs; it does not support `--ref`.
 
 **EXTEND.md overrides env vars**. If both EXTEND.md `default_model.google: "gemini-3-pro-image-preview"` and env var `GOOGLE_IMAGE_MODEL=gemini-3.1-flash-image-preview` exist, EXTEND.md wins.
 
@@ -340,16 +348,16 @@ ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider r
 ## Provider Selection
 
 1. `--ref` provided + no `--provider` → auto-select Google first, then OpenAI, then Azure, then OpenRouter, then Replicate, then Seedream, then MiniMax (MiniMax subject reference is more specialized toward character/portrait consistency)
-2. `--provider` specified → use it (if `--ref`, must be `google`, `openai`, `azure`, `openrouter`, `replicate`, `seedream`, or `minimax`)
+2. `--provider` specified → use it (if `--ref`, must be `google`, `openai`, `azure`, `openrouter`, `replicate`, `seedream`, or `minimax`; Atlas is text-to-image only)
 3. Only one API key available → use that provider
 4. Multiple available → default to Google
 
 ## Quality Presets
 
-| Preset | Google imageSize | OpenAI Size | OpenRouter size | Replicate resolution | Use Case |
-|--------|------------------|-------------|-----------------|----------------------|----------|
-| `normal` | 1K | 1024px | 1K | 1K | Quick previews |
-| `2k` (default) | 2K | 2048px | 2K | 2K | Covers, illustrations, infographics |
+| Preset | Google imageSize | OpenAI Size | OpenRouter size | Replicate resolution | Atlas size | Use Case |
+|--------|------------------|-------------|-----------------|----------------------|------------|----------|
+| `normal` | 1K | 1024px | 1K | 1K | ~1024px | Quick previews |
+| `2k` (default) | 2K | 2048px | 2K | 2K | ~2048px | Covers, illustrations, infographics |
 
 **Google/OpenRouter imageSize**: Can be overridden with `--imageSize 1K|2K|4K`
 
@@ -393,13 +401,13 @@ Parallel behavior:
 - Default worker count is automatic, capped by config, built-in default 10
 - Provider-specific throttling is applied only in batch mode, and the built-in defaults are tuned for faster throughput while still avoiding obvious RPM bursts
 - You can override worker count with `--jobs <count>`
-- Each image retries automatically up to 3 attempts
+- Each image retries automatically up to 3 attempts, except Atlas generation POSTs, which are submitted once
 - Final output includes success count, failure count, and per-image failure reasons
 
 ## Error Handling
 
 - Missing API key → error with setup instructions
-- Generation failure → auto-retry up to 3 attempts per image
+- Generation failure → auto-retry up to 3 attempts per image; Atlas generation POSTs are never retried
 - Invalid aspect ratio → warning, proceed with default
 - Reference images with unsupported provider/model → error with fix hint
 

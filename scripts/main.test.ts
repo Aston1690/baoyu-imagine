@@ -78,7 +78,7 @@ test("parseArgs parses the main baoyu-imagine CLI flags", () => {
     "--image",
     "out/hero",
     "--provider",
-    "openai",
+    "atlas",
     "--quality",
     "2k",
     "--imageSize",
@@ -95,7 +95,7 @@ test("parseArgs parses the main baoyu-imagine CLI flags", () => {
 
   assert.deepEqual(args.promptFiles, ["prompts/system.md", "prompts/content.md"]);
   assert.equal(args.imagePath, "out/hero");
-  assert.equal(args.provider, "openai");
+  assert.equal(args.provider, "atlas");
   assert.equal(args.quality, "2k");
   assert.equal(args.imageSize, "4K");
   assert.deepEqual(args.referenceImages, ["ref/one.png", "ref/two.jpg"]);
@@ -125,6 +125,7 @@ default_model:
   google: gemini-3-pro-image-preview
   openai: gpt-image-1.5
   azure: image-prod
+  atlas: openai/gpt-image-2/text-to-image
   minimax: image-01
 batch:
   max_workers: 8
@@ -140,6 +141,9 @@ batch:
     azure:
       concurrency: 1
       start_interval_ms: 1500
+    atlas:
+      concurrency: 1
+      start_interval_ms: 1800
 `;
 
   const config = parseSimpleYaml(yaml);
@@ -152,6 +156,7 @@ batch:
   assert.equal(config.default_model?.google, "gemini-3-pro-image-preview");
   assert.equal(config.default_model?.openai, "gpt-image-1.5");
   assert.equal(config.default_model?.azure, "image-prod");
+  assert.equal(config.default_model?.atlas, "openai/gpt-image-2/text-to-image");
   assert.equal(config.default_model?.minimax, "image-01");
   assert.equal(config.batch?.max_workers, 8);
   assert.deepEqual(config.batch?.provider_limits?.google, {
@@ -168,6 +173,10 @@ batch:
   assert.deepEqual(config.batch?.provider_limits?.azure, {
     concurrency: 1,
     start_interval_ms: 1500,
+  });
+  assert.deepEqual(config.batch?.provider_limits?.atlas, {
+    concurrency: 1,
+    start_interval_ms: 1800,
   });
 });
 
