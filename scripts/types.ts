@@ -7,7 +7,8 @@ export type Provider =
   | "replicate"
   | "jimeng"
   | "seedream"
-  | "azure";
+  | "azure"
+  | "atlas";
 export type Quality = "normal" | "2k";
 
 export type CliArgs = {
@@ -66,6 +67,7 @@ export type ExtendConfig = {
     jimeng: string | null;
     seedream: string | null;
     azure: string | null;
+    atlas: string | null;
   };
   batch?: {
     max_workers?: number | null;

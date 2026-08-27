@@ -62,6 +62,7 @@ const DEFAULT_PROVIDER_RATE_LIMITS: Record<Provider, ProviderRateLimit> = {
   jimeng: { concurrency: 3, startIntervalMs: 1100 },
   seedream: { concurrency: 3, startIntervalMs: 1100 },
   azure: { concurrency: 3, startIntervalMs: 1100 },
+  atlas: { concurrency: 1, startIntervalMs: 1500 },
 };
 
 function printUsage(): void {
@@ -76,7 +77,7 @@ Options:
   --image <path>            Output image path (required in single-image mode)
   --batchfile <path>        JSON batch file for multi-image generation
   --jobs <count>            Worker count for batch mode (default: auto, max from config, built-in default 10)
-  --provider google|openai|openrouter|dashscope|minimax|replicate|jimeng|seedream|azure  Force provider (auto-detect by default)
+  --provider google|openai|openrouter|dashscope|minimax|replicate|jimeng|seedream|azure|atlas  Force provider (auto-detect by default)
   -m, --model <id>          Model ID
   --ar <ratio>              Aspect ratio (e.g., 16:9, 1:1, 4:3)
   --size <WxH>              Size (e.g., 1024x1024)
@@ -118,6 +119,7 @@ Environment variables:
   JIMENG_ACCESS_KEY_ID      Jimeng Access Key ID
   JIMENG_SECRET_ACCESS_KEY  Jimeng Secret Access Key
   ARK_API_KEY               Seedream/Ark API key
+  ATLASCLOUD_API_KEY        Atlas Cloud API key
   OPENAI_IMAGE_MODEL        Default OpenAI model (gpt-image-1.5)
   OPENROUTER_IMAGE_MODEL    Default OpenRouter model (google/gemini-3.1-flash-image-preview)
   GOOGLE_IMAGE_MODEL        Default Google model (gemini-3-pro-image-preview)
@@ -126,6 +128,7 @@ Environment variables:
   REPLICATE_IMAGE_MODEL     Default Replicate model (google/nano-banana-pro)
   JIMENG_IMAGE_MODEL        Default Jimeng model (jimeng_t2i_v40)
   SEEDREAM_IMAGE_MODEL      Default Seedream model (doubao-seedream-5-0-260128)
+  ATLAS_IMAGE_MODEL         Default Atlas Cloud model (openai/gpt-image-2/text-to-image)
   OPENAI_BASE_URL           Custom OpenAI endpoint
   OPENAI_IMAGE_USE_CHAT     Use /chat/completions instead of /images/generations (true|false)
   OPENROUTER_BASE_URL       Custom OpenRouter endpoint
@@ -142,6 +145,7 @@ Environment variables:
   AZURE_API_VERSION         Azure API version (default: 2025-04-01-preview)
   AZURE_OPENAI_IMAGE_MODEL  Backward-compatible Azure deployment/model alias (defaults to gpt-image-1.5)
   SEEDREAM_BASE_URL         Custom Seedream endpoint
+  ATLASCLOUD_BASE_URL       Custom Atlas Cloud endpoint
   BAOYU_IMAGE_GEN_MAX_WORKERS  Override batch worker cap
   BAOYU_IMAGE_GEN_<PROVIDER>_CONCURRENCY  Override provider concurrency
   BAOYU_IMAGE_GEN_<PROVIDER>_START_INTERVAL_MS  Override provider start gap in ms
@@ -243,7 +247,8 @@ export function parseArgs(argv: string[]): CliArgs {
         v !== "replicate" &&
         v !== "jimeng" &&
         v !== "seedream" &&
-        v !== "azure"
+        v !== "azure" &&
+        v !== "atlas"
       ) {
         throw new Error(`Invalid provider: ${v}`);
       }
@@ -400,6 +405,7 @@ export function parseSimpleYaml(yaml: string): Partial<ExtendConfig> {
           jimeng: null,
           seedream: null,
           azure: null,
+          atlas: null,
         };
         currentKey = "default_model";
         currentProvider = null;
@@ -427,7 +433,8 @@ export function parseSimpleYaml(yaml: string): Partial<ExtendConfig> {
           key === "replicate" ||
           key === "jimeng" ||
           key === "seedream" ||
-          key === "azure"
+          key === "azure" ||
+          key === "atlas"
         )
       ) {
         config.batch ??= {};
@@ -445,7 +452,8 @@ export function parseSimpleYaml(yaml: string): Partial<ExtendConfig> {
           key === "replicate" ||
           key === "jimeng" ||
           key === "seedream" ||
-          key === "azure"
+          key === "azure" ||
+          key === "atlas"
         )
       ) {
         const cleaned = value.replace(/['"]/g, "");
@@ -575,9 +583,10 @@ export function getConfiguredProviderRateLimits(
     jimeng: { ...DEFAULT_PROVIDER_RATE_LIMITS.jimeng },
     seedream: { ...DEFAULT_PROVIDER_RATE_LIMITS.seedream },
     azure: { ...DEFAULT_PROVIDER_RATE_LIMITS.azure },
+    atlas: { ...DEFAULT_PROVIDER_RATE_LIMITS.atlas },
   };
 
-  for (const provider of ["replicate", "google", "openai", "openrouter", "dashscope", "minimax", "jimeng", "seedream", "azure"] as Provider[]) {
+  for (const provider of ["replicate", "google", "openai", "openrouter", "dashscope", "minimax", "jimeng", "seedream", "azure", "atlas"] as Provider[]) {
     const envPrefix = `BAOYU_IMAGE_GEN_${provider.toUpperCase()}`;
     const extendLimit = extendConfig.batch?.provider_limits?.[provider];
     configured[provider] = {
@@ -660,6 +669,7 @@ export function detectProvider(args: CliArgs): Provider {
   const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
   const hasJimeng = !!(process.env.JIMENG_ACCESS_KEY_ID && process.env.JIMENG_SECRET_ACCESS_KEY);
   const hasSeedream = !!process.env.ARK_API_KEY;
+  const hasAtlas = !!process.env.ATLASCLOUD_API_KEY;
   const modelProvider = inferProviderFromModel(args.model);
 
   if (modelProvider === "seedream") {
@@ -699,13 +709,14 @@ export function detectProvider(args: CliArgs): Provider {
     hasReplicate && "replicate",
     hasJimeng && "jimeng",
     hasSeedream && "seedream",
+    hasAtlas && "atlas",
   ].filter(Boolean) as Provider[];
 
   if (available.length === 1) return available[0]!;
   if (available.length > 1) return available[0]!;
 
   throw new Error(
-    "No API key found. Set GOOGLE_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY+AZURE_OPENAI_BASE_URL, OPENROUTER_API_KEY, DASHSCOPE_API_KEY, MINIMAX_API_KEY, REPLICATE_API_TOKEN, JIMENG keys, or ARK_API_KEY.\n" +
+    "No API key found. Set GOOGLE_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY+AZURE_OPENAI_BASE_URL, OPENROUTER_API_KEY, DASHSCOPE_API_KEY, MINIMAX_API_KEY, REPLICATE_API_TOKEN, JIMENG keys, ARK_API_KEY, or ATLASCLOUD_API_KEY.\n" +
       "Create ~/.baoyu-skills/.env or <cwd>/.baoyu-skills/.env with your keys."
   );
 }
@@ -750,6 +761,7 @@ async function loadProviderModule(provider: Provider): Promise<ProviderModule> {
   if (provider === "jimeng") return (await import("./providers/jimeng")) as ProviderModule;
   if (provider === "seedream") return (await import("./providers/seedream")) as ProviderModule;
   if (provider === "azure") return (await import("./providers/azure")) as ProviderModule;
+  if (provider === "atlas") return (await import("./providers/atlas")) as ProviderModule;
   return (await import("./providers/openai")) as ProviderModule;
 }
 
@@ -780,6 +792,7 @@ function getModelForProvider(
     if (provider === "jimeng" && extendConfig.default_model.jimeng) return extendConfig.default_model.jimeng;
     if (provider === "seedream" && extendConfig.default_model.seedream) return extendConfig.default_model.seedream;
     if (provider === "azure" && extendConfig.default_model.azure) return extendConfig.default_model.azure;
+    if (provider === "atlas" && extendConfig.default_model.atlas) return extendConfig.default_model.atlas;
   }
   return providerModule.getDefaultModel();
 }
@@ -910,8 +923,9 @@ async function generatePreparedTask(task: PreparedTask): Promise<TaskResult> {
     `Switch model: --model <id> | EXTEND.md default_model.${task.provider} | env ${task.provider.toUpperCase()}_IMAGE_MODEL`
   );
 
+  const maxAttempts = task.provider === "atlas" ? 1 : MAX_ATTEMPTS;
   let attempts = 0;
-  while (attempts < MAX_ATTEMPTS) {
+  while (attempts < maxAttempts) {
     attempts += 1;
     try {
       const imageData = await task.providerModule.generateImage(task.prompt, task.model, task.args);
@@ -927,9 +941,9 @@ async function generatePreparedTask(task: PreparedTask): Promise<TaskResult> {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const canRetry = attempts < MAX_ATTEMPTS && isRetryableGenerationError(error);
+      const canRetry = attempts < maxAttempts && isRetryableGenerationError(error);
       if (canRetry) {
-        console.error(`[${task.id}] Attempt ${attempts}/${MAX_ATTEMPTS} failed, retrying...`);
+        console.error(`[${task.id}] Attempt ${attempts}/${maxAttempts} failed, retrying...`);
         continue;
       }
       return {
@@ -950,7 +964,7 @@ async function generatePreparedTask(task: PreparedTask): Promise<TaskResult> {
     model: task.model,
     outputPath: task.outputPath,
     success: false,
-    attempts: MAX_ATTEMPTS,
+    attempts: maxAttempts,
     error: "Unknown failure",
   };
 }
@@ -999,7 +1013,7 @@ async function runBatchTasks(
   const acquireProvider = createProviderGate(providerRateLimits);
   const workerCount = getWorkerCount(tasks.length, jobs, maxWorkers);
   console.error(`Batch mode: ${tasks.length} tasks, ${workerCount} workers, parallel mode enabled.`);
-  for (const provider of ["replicate", "google", "openai", "openrouter", "dashscope", "jimeng", "seedream", "azure"] as Provider[]) {
+  for (const provider of ["replicate", "google", "openai", "openrouter", "dashscope", "minimax", "jimeng", "seedream", "azure", "atlas"] as Provider[]) {
     const limit = providerRateLimits[provider];
     console.error(`- ${provider}: concurrency=${limit.concurrency}, startIntervalMs=${limit.startIntervalMs}`);
   }
